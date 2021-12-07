@@ -1,0 +1,261 @@
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <set>
+#include <map>
+#include <exception>
+#include <algorithm>
+#include <stdlib.h>
+#include <stdexcept>
+#include <iomanip>
+
+using namespace std;
+
+class Day {
+public:
+  Day() = default;
+  explicit Day(int value) {
+    day = value;
+    if (value < 1 || value > 31) {
+      throw runtime_error("Day value is invalid: " +
+                          to_string(day));
+    }
+  }
+  operator int() const {
+    return day;
+  }
+private:
+  int day = 1;
+};
+
+class Month {
+public:
+  Month() = default;
+  explicit Month(int value) {
+    month = value;
+    if (value < 1 || value > 12) {
+      throw runtime_error("Month value is invalid: " +
+                          to_string(month));
+    }
+  }
+  operator int() const {
+    return month;
+  }
+private:
+  int month = 1;
+};
+
+class Year {
+public: 
+  Year() = default;
+  explicit Year(int value) {
+    year = value;
+  }
+  operator int() const {
+    return year;
+  }
+private:
+  int year = 1;
+};
+
+class Date {
+public:
+  Date() = default;
+  Date(Day d, Month m, Year y) {
+    day = d;
+    month = m;
+    year = y;
+  }
+public:
+  Year GetYear() const {
+    return year;
+  }
+  Month GetMonth() const {
+    return month;
+  }
+  Day GetDay() const {
+    return day;
+  }
+private:
+  Year year;
+  Month month;
+  Day day;
+};
+bool operator<(const Date& lhs,
+    const Date& rhs) {
+  if(lhs.GetYear() != rhs.GetYear()) {
+    return lhs.GetYear() < rhs.GetYear();
+  }
+  if (lhs.GetMonth() != rhs.GetMonth()) {
+    return lhs.GetMonth() < rhs.GetMonth();
+  }
+    return lhs.GetDay() < rhs.GetDay();
+}
+
+class EventsDatabase {
+public:
+  void AddEvent(
+    const Date& date,
+    const string& event)
+  {
+    base[date].insert(event);
+  }
+
+  bool DeleteEvent(
+    const Date& date,
+    const string& event
+  )
+  {
+    return 1 == base[date].erase(event);
+  }
+
+  int DeleteEventsOn(const Date& date) {
+    int count = base[date].size();
+    base.erase(date);
+    return count;
+  }
+
+ const set<string>& GetEventsOn(const Date& date) {
+    return base[date];
+  }
+
+  const map<Date, set<string>>& GetEvents() {
+    return base;
+  }
+
+private:
+  map<Date, set<string>> base;
+};
+
+istream& operator>>(istream& stream,
+    Date& date) {
+  string dateString;
+  stream >> dateString;
+  stringstream ss(dateString);
+  int year, month, day;
+  if (!(ss >> year) ||
+    ss.peek() != '-' ||
+    !ss.ignore(1) ||
+    !(ss >> month) ||
+    ss.peek() != '-' ||
+    !ss.ignore(1) ||
+    !(ss >> day) ||
+    !ss.eof()) {
+    throw runtime_error("Wrong date format: " + dateString);
+  }
+  auto m = Month(month);
+  auto d = Day(day);
+  auto y = Year(year);
+  date = Date(d, m, y);
+  return stream;
+}
+
+ostream& operator<<(ostream& stream, const Date& date) {
+  if(date.GetYear() < 0) {
+    stream << '-' << setfill('0') << setw(4) <<
+        date.GetYear() * (-1) << "-";
+    stream << setfill('0') << setw(2) <<
+        date.GetMonth() << "-";
+    stream << setfill('0') << setw(2) <<
+        date.GetDay();
+    return stream;
+  }
+  else {
+    stream << setfill('0') << setw(4) <<
+        to_string(date.GetYear()) << "-";
+    stream << setfill('0') << setw(2) <<
+        to_string(date.GetMonth()) << "-";
+    stream << setfill('0') << setw(2) <<
+        to_string(date.GetDay());
+    return stream;
+  }
+}
+
+int main() {
+  EventsDatabase db;
+  string command;
+  while (getline(cin, command)) {
+    stringstream input(command);
+    string operation;
+    Date date;
+    string event;
+    input >> operation;
+    if (operation == "") {
+      continue;
+    }
+    else if(operation == "Add") {
+      try {
+        input >> date;
+      }
+      catch(exception& ex) {
+        cout << ex.what();
+        exit(0);
+      }
+      if(input) {
+
+      }
+      input >> event;
+      db.AddEvent(date, event);
+    }
+
+    else if(operation == "Del") {
+      try {
+        input >> date;
+      }
+      catch(exception& ex) {
+        cout << ex.what();
+        exit(0);
+      }
+      input >> event;
+      if(event.empty()) {
+
+      cout << "Deleted " << db.DeleteEventsOn(date) <<
+          " events" << endl;
+    }
+
+      else {
+
+        input >> event;
+        if(db.DeleteEvent(date, event)) {
+          cout << "Deleted successfully" << endl;
+        }
+        else {
+          cout << "Event not found" << endl;
+        }
+
+    }
+    }
+
+    else if(operation == "Find") {
+      try {
+        input >> date;
+      }
+      catch(exception& ex) {
+        cout << ex.what();
+        exit(0);
+      }
+      for(auto& c : db.GetEventsOn(date)) {
+        cout << c << endl;
+      }
+    }
+
+    else if(operation == "Print") {
+      for(auto& [date, events] : db.GetEvents()) {
+        if(date.GetYear() >= 0) {
+        for(auto& event : events) {
+          cout << date << ' ' << event << endl;
+        }
+        }
+      }
+    }
+
+
+    else {
+      cout << "Unknown command: "
+          << operation;
+      exit(0);
+    }
+
+}
+  return 0;
+}
